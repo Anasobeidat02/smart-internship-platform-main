@@ -6,6 +6,7 @@ import { useI18n } from "@/components/providers/I18nProvider";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
 import { ArrowRight, Map } from "lucide-react";
+import { useEffect, useState } from "react";
 
 const HeroScene = dynamic(
   () => import("@/components/hero/HeroScene").then((m) => m.HeroScene),
@@ -15,6 +16,15 @@ const HeroScene = dynamic(
 export function Hero() {
   const { t, dir } = useI18n();
   const isRTL = dir === "rtl";
+  const [showScene, setShowScene] = useState(false);
+
+  useEffect(() => {
+    // Delay loading the heavy 3D library by a short duration to prioritize page interactivity
+    const timer = setTimeout(() => {
+      setShowScene(true);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <section className="relative overflow-hidden">
@@ -33,7 +43,7 @@ export function Hero() {
           <h1 className="mt-5 text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
             <span className="gradient-text">{t.hero.title}</span>
           </h1>
-             <p className="mt-5 max-w-xl text-lg text-[rgb(var(--muted))] leading-relaxed">
+          <p className="mt-5 max-w-xl text-lg text-[rgb(var(--muted))] leading-relaxed">
             {t.hero.subtitle}
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
@@ -58,7 +68,7 @@ export function Hero() {
           transition={{ duration: 0.9, ease: "easeOut", delay: 0.15 }}
           className="relative h-[420px] lg:h-[520px]"
         >
-          <HeroScene />
+          {showScene ? <HeroScene /> : <div className="absolute inset-0" />}
         </motion.div>
       </div>
     </section>
