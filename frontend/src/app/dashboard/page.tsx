@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { api } from "@/lib/api";
 import type { RecommendationOut } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Building2, MapPin, Sparkles, TrendingUp, Compass, AlertCircle, Navigation, Briefcase } from "lucide-react";
 import { formatKm, formatScore, googleMapsSearchUrl, googleMapsDirectionsUrl } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -25,6 +25,14 @@ export default function DashboardHome() {
   const { user } = useAuth();
   const [focusOn, setFocusOn] = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [showMap, setShowMap] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowMap(true);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   const isStudent = user?.role === "student";
   const { data, isLoading, error } = useQuery({
@@ -159,14 +167,18 @@ export default function DashboardHome() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="h-[480px] rounded-2xl border border-[rgb(var(--border))] overflow-hidden">
-          <JordanMap
-            markers={markers}
-            focusOn={focusOn}
-            onMarkerClick={(m) => {
-              const cid = (m.meta as { companyId?: number })?.companyId;
-              if (cid && cid > 0) setSelectedId(cid);
-            }}
-          />
+          {showMap ? (
+            <JordanMap
+              markers={markers}
+              focusOn={focusOn}
+              onMarkerClick={(m) => {
+                const cid = (m.meta as { companyId?: number })?.companyId;
+                if (cid && cid > 0) setSelectedId(cid);
+              }}
+            />
+          ) : (
+            <div className="h-full w-full bg-[rgb(var(--surface))] animate-pulse rounded-2xl flex items-center justify-center text-sm text-[rgb(var(--muted))]" />
+          )}
         </div>
 
         <div className="space-y-3 max-h-[480px] overflow-y-auto pr-1 no-scrollbar">
