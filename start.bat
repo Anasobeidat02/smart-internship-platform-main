@@ -152,8 +152,14 @@ popd
 
 REM --- Launch services in separate windows -------------------------------
 echo [4/4] Launching backend and frontend...
-start "Smart Internship - Backend" cmd /k "cd /d %~dp0backend && call .venv\Scripts\activate.bat && uvicorn app.main:app --reload --host 127.0.0.1 --port 8000"
-start "Smart Internship - Frontend" cmd /k "cd /d %~dp0frontend && %PKG% run dev"
+pushd "%~dp0backend"
+start "Smart Internship - Backend" cmd /k "call .\.venv\Scripts\activate && uvicorn app.main:app --reload --host 127.0.0.1 --port 8000"
+popd
+
+pushd "%~dp0frontend"
+start "Smart Internship - Frontend" cmd /k "%PKG% run dev"
+popd
+
 
 echo.
 echo Waiting for services to come online...

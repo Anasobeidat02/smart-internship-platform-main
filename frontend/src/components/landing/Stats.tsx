@@ -13,16 +13,25 @@ function Counter({ value }: { value: number }) {
   const inView = useInView(ref, { once: true, margin: "-50px" });
   const motionVal = useMotionValue(0);
   const [display, setDisplay] = useState(0);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (!inView) return;
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted || !inView) return;
     const controls = animate(motionVal, value, {
       duration: 1.6,
       ease: "easeOut",
       onUpdate: (v) => setDisplay(Math.floor(v)),
     });
     return controls.stop;
-  }, [inView, value, motionVal]);
+  }, [inView, value, motionVal, mounted]);
+
+  if (!mounted) {
+    return <span ref={ref}>0</span>;
+  }
 
   return <span ref={ref}>{display.toLocaleString()}</span>;
 }

@@ -13,9 +13,9 @@ venv/
 *.sqlite3
 
 # Env
-.env
-.env.local
-.env.*.local
+# .env
+# .env.local
+# .env.*.local
 
 # Node
 node_modules/
