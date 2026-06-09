@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-50:  #eef4ff;
+  --color-brand-100: #d9e6ff;
+  --color-brand-200: #b3ccff;
+  --color-brand-300: #84aaff;
+  --color-brand-400: #4f82ff;
+  --color-brand-500: #2a5fe0;
+  --color-brand-600: #1d47b8;
+  --color-brand-700: #173891;
+  --color-brand-800: #122c70;
+  --color-brand-900: #0c1f55;
+  --color-brand-950: #060f33;
+
+  --color-cyan-glow: #22d3ee;
+  --color-gold-500: #f5b800;
+  --color-gold-600: #d99b00;
+  --color-gold-300: #ffd86b;
+
+  --font-sans: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-arabic: var(--font-cairo), "Tajawal", "Segoe UI", sans-serif;
+}
+
+:root {
+  /* Dark by default - premium navy + aurora */
+  --background: 6 12 28;
+  --foreground: 240 245 255;
+  --surface: 12 22 48;
+  --muted: 148 163 184;
+  --border: 30 41 78;
+}
+
+html, body {
+  color-scheme: dark;
+}
+
+body {
+  background:
+    radial-gradient(80rem 50rem at 15% -10%, oklch(0.45 0.18 255 / 0.35), transparent 60%),
+    radial-gradient(60rem 40rem at 95% 8%, oklch(0.62 0.16 200 / 0.22), transparent 60%),
+    radial-gradient(70rem 40rem at 50% 110%, oklch(0.70 0.14 80 / 0.12), transparent 60%),
+    rgb(var(--background));
+  background-attachment: fixed;
+}
+
+html { scroll-behavior: smooth; }
+html[dir="rtl"] body { font-family: var(--font-arabic); }
+
+body {
+  color: rgb(var(--foreground));
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  min-height: 100vh;
+}
+
+.glass {
+  background: color-mix(in oklab, rgb(var(--surface)) 70%, transparent);
+  backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid rgb(var(--border) / 0.6);
+}
+
+.aurora {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(60rem 30rem at 10% 0%, oklch(0.62 0.18 250 / 0.35), transparent 60%),
+    radial-gradient(40rem 22rem at 90% 10%, oklch(0.78 0.16 200 / 0.30), transparent 60%),
+    radial-gradient(50rem 28rem at 50% 100%, oklch(0.82 0.14 80 / 0.22), transparent 60%);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #84aaff 0%, #22d3ee 50%, #f5b800 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+.maplibregl-ctrl-attrib { font-size: 10px; opacity: 0.6; }
+.maplibregl-popup-content {
+  background: rgb(var(--surface));
+  color: rgb(var(--foreground));
+  border: 1px solid rgb(var(--border));
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  min-width: 220px;
+}
+.maplibregl-popup-tip { display: none; }
+.maplibregl-popup-close-button {
+  color: rgb(var(--muted));
+  font-size: 18px;
+  padding: 4px 8px;
+  background: transparent;
+  border: none;
+}
+.maplibregl-popup-close-button:hover {
+  color: rgb(var(--foreground));
+  background: transparent;
+}
