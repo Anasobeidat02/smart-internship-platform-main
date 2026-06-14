@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-store";
 import type { User } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/components/providers/I18nProvider";
 import {
   Building2,
   GraduationCap,
@@ -22,18 +23,21 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-const NAV = [
-  { href: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
-  { href: "/admin/users", label: "Users", icon: Users },
-  { href: "/admin/students", label: "Students", icon: GraduationCap },
-  { href: "/admin/companies", label: "Corporates", icon: Building2 },
-  { href: "/admin/pending", label: "Pending Approvals", icon: ClipboardCheck },
-  { href: "/admin/universities", label: "Institutes", icon: School2 },
-  { href: "/admin/internships", label: "Internships", icon: Briefcase },
-  { href: "/admin/applications", label: "Applications", icon: ScrollText },
+import type { Dictionary } from "@/lib/i18n";
+
+const NAV: readonly { href: string; key: keyof Dictionary["admin"]; icon: React.ComponentType<any>; exact?: boolean }[] = [
+  { href: "/admin", key: "navOverview", icon: LayoutDashboard, exact: true },
+  { href: "/admin/users", key: "navUsers", icon: Users },
+  { href: "/admin/students", key: "navStudents", icon: GraduationCap },
+  { href: "/admin/companies", key: "navCorporates", icon: Building2 },
+  { href: "/admin/pending", key: "navPending", icon: ClipboardCheck },
+  { href: "/admin/universities", key: "navInstitutes", icon: School2 },
+  { href: "/admin/internships", key: "navInternships", icon: Briefcase },
+  { href: "/admin/applications", key: "navApplications", icon: ScrollText },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const { t } = useI18n();
   const router = useRouter();
   const path = usePathname();
   const { user, setUser, hydrated, logout } = useAuth();
@@ -68,7 +72,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="grid place-items-center min-h-[calc(100vh-4rem)]">
         <div className="flex items-center gap-2 text-[rgb(var(--muted))] text-sm">
           <ShieldCheck className="h-4 w-4 animate-pulse" />
-          Verifying admin session…
+          {t.admin.verifyingSession}
         </div>
       </div>
     );
@@ -89,7 +93,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <ShieldCheck className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <div className="font-semibold text-sm truncate">Admin Console</div>
+                <div className="font-semibold text-sm truncate">{t.admin.adminConsole}</div>
                 <div className="text-[11px] text-[rgb(var(--muted))] uppercase tracking-wider truncate">
                   {user.email}
                 </div>
@@ -112,7 +116,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   )}
                 >
                   <it.icon className="h-4 w-4" />
-                  {it.label}
+                  {t.admin[it.key]}
                 </Link>
               );
             })}
@@ -123,12 +127,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             className="flex items-center gap-2 px-3 py-2 text-xs text-[rgb(var(--muted))] hover:text-[rgb(var(--foreground))]"
           >
             <Sparkles className="h-3.5 w-3.5" />
-            Back to site
+            {t.admin.backToSite}
           </Link>
 
           <Button variant="outline" className="w-full" size="sm" onClick={handleLogout}>
             <LogOut className="h-4 w-4" />
-            Sign out
+            {t.admin.signOut}
           </Button>
         </aside>
 

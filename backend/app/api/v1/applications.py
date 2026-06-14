@@ -8,8 +8,9 @@ from sqlmodel import select
 from app.api.deps import current_user_id, db, require_role
 from app.api.schemas import ApplicationOut, ApplicationStatusIn
 from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
-from app.infra.db.models import Application, Company, Internship, StudentProfile, User
+from app.infra.db.models import Application, Company, Internship, StudentProfile, User, University
 from app.services.mailer import notify_company_new_application, notify_student_status_change
+from app.ml.matcher import CompanyVec, StudentVec, rank
 
 router = APIRouter()
 
@@ -50,16 +51,69 @@ async def apply(
     if existing:
         raise ConflictError("Already applied")
 
+    student_profile = (
+        await session.exec(
+            select(StudentProfile).where(StudentProfile.user_id == user_id)
+        )
+    ).first()
+
+    match_score = 0.0
+    skills_score = 0.0
+    geo_score = 0.0
+    field_score = 0.0
+    experience_score = 0.0
+
+    company = await session.get(Company, internship.company_id)
+    if student_profile and company:
+        uni_gov = None
+        if student_profile.university_id:
+            uni = await session.get(University, student_profile.university_id)
+            if uni:
+                uni_gov = uni.governorate
+
+        student_vec = StudentVec(
+            skills=student_profile.skills or "",
+            knowledge_areas=student_profile.knowledge_areas or "",
+            major=student_profile.major or "",
+            experience_years=student_profile.experience_years or 0,
+            home_lat=student_profile.home_latitude,
+            home_lng=student_profile.home_longitude,
+            home_governorate=student_profile.home_governorate or "",
+            university_governorate=uni_gov,
+            university_id=student_profile.university_id,
+        )
+        cvec = CompanyVec(
+            id=company.id,
+            slug=company.slug,
+            name=company.name_en,
+            fields=company.fields,
+            training_fields=company.training_fields,
+            city=company.city,
+            governorate=company.governorate,
+            latitude=company.latitude,
+            longitude=company.longitude,
+            is_strategic_partner=company.is_strategic_partner,
+        )
+        ranked = rank(student_vec, [cvec])
+        if ranked:
+            r_item = ranked[0]
+            match_score = r_item["score"]
+            breakdown = r_item.get("breakdown", {})
+            skills_score = breakdown.get("skills", 0.0)
+            geo_score = breakdown.get("geo", 0.0)
+            field_score = breakdown.get("field", 0.0)
+            experience_score = breakdown.get("experience", 0.0)
+
     app_row = Application(
         student_user_id=user_id,
         internship_id=internship.id,
         company_id=internship.company_id,
         cover_letter=payload.cover_letter,
-        match_score=payload.match_score,
-        skills_score=payload.skills_score,
-        geo_score=payload.geo_score,
-        field_score=payload.field_score,
-        experience_score=payload.experience_score,
+        match_score=match_score,
+        skills_score=skills_score,
+        geo_score=geo_score,
+        field_score=field_score,
+        experience_score=experience_score,
         status="pending",
     )
     session.add(app_row)
@@ -67,13 +121,7 @@ async def apply(
     await session.refresh(app_row)
 
     # ── Fire-and-forget email to the company ──────────────────────────────
-    company = await session.get(Company, internship.company_id)
     student_user = await session.get(User, user_id)
-    student_profile = (
-        await session.exec(
-            select(StudentProfile).where(StudentProfile.user_id == user_id)
-        )
-    ).first()
 
     if company and student_user:
         company_email = company.website or student_user.email  # fallback
@@ -83,14 +131,17 @@ async def apply(
             if owner:
                 company_email = owner.email
 
-        await notify_company_new_application(
-            company_email=company_email,
-            company_name=company.name_en,
-            internship_title=internship.title_en,
-            student_name=student_profile.full_name if student_profile else student_user.email,
-            student_email=student_user.email,
-            cover_letter=payload.cover_letter,
-            match_score=payload.match_score,
+        import asyncio
+        asyncio.create_task(
+            notify_company_new_application(
+                company_email=company_email,
+                company_name=company.name_en,
+                internship_title=internship.title_en,
+                student_name=student_profile.full_name if student_profile else student_user.email,
+                student_email=student_user.email,
+                cover_letter=payload.cover_letter,
+                match_score=match_score,
+            )
         )
 
     return ApplicationOut.model_validate(app_row, from_attributes=True)
@@ -203,12 +254,15 @@ async def update_status(
         ).first()
 
         if student_user and internship and company:
-            await notify_student_status_change(
-                student_email=student_user.email,
-                student_name=student_profile.full_name if student_profile else student_user.email,
-                internship_title=internship.title_en,
-                company_name=company.name_en,
-                new_status=payload.status,
+            import asyncio
+            asyncio.create_task(
+                notify_student_status_change(
+                    student_email=student_user.email,
+                    student_name=student_profile.full_name if student_profile else student_user.email,
+                    internship_title=internship.title_en,
+                    company_name=company.name_en,
+                    new_status=payload.status,
+                )
             )
 
     return ApplicationOut.model_validate(row, from_attributes=True)

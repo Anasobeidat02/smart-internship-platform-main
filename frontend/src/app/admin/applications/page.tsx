@@ -86,7 +86,7 @@ export default function AdminApplicationsPage() {
               key: "match_score",
               header: "Match",
               render: (r) => (
-                <Badge tone="info">{(r.match_score * 100).toFixed(0)}%</Badge>
+                <Badge tone="info">{Math.round(r.match_score)}%</Badge>
               ),
             },
             {

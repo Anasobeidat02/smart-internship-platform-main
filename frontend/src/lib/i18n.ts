@@ -55,11 +55,41 @@ interface MapDict {
 interface CommonDict {
   loading: string; error: string; retry: string; save: string; cancel: string; close: string; learn_more: string; language: string;
 }
+interface AdminDict {
+  verifyingSession: string;
+  adminConsole: string;
+  backToSite: string;
+  signOut: string;
+  navOverview: string;
+  navUsers: string;
+  navStudents: string;
+  navCorporates: string;
+  navPending: string;
+  navInstitutes: string;
+  navInternships: string;
+  navApplications: string;
+  overviewTitle: string;
+  overviewSubtitle: string;
+  failedLoadStats: string;
+  tileUsers: string;
+  tileStudents: string;
+  tileCorporates: string;
+  tileInstitutes: string;
+  tileInternships: string;
+  tileApplications: string;
+  tileStrategicPartners: string;
+  tileActiveUsers: string;
+  quickGuidance: string;
+  guidanceLine1: string;
+  guidanceLine2: string;
+  guidanceLine3: string;
+}
 export interface Dictionary {
   brand: string; tagline: string;
   nav: NavDict; hero: HeroDict; stats: StatsDict; partner: PartnerDict; auth: AuthDict;
   dashboard: DashboardDict; profile: ProfileDict; map: MapDict; common: CommonDict;
   adminInternships: AdminInternshipsDict;
+  admin: AdminDict;
 }
 
 export const dictionaries: Record<Locale, Dictionary> = {
@@ -226,6 +256,35 @@ export const dictionaries: Record<Locale, Dictionary> = {
       learn_more: "Learn more",
       language: "Language",
     },
+    admin: {
+      verifyingSession: "Verifying admin session…",
+      adminConsole: "Admin Console",
+      backToSite: "Back to site",
+      signOut: "Sign out",
+      navOverview: "Overview",
+      navUsers: "Users",
+      navStudents: "Students",
+      navCorporates: "Corporates",
+      navPending: "Pending Approvals",
+      navInstitutes: "Institutes",
+      navInternships: "Internships",
+      navApplications: "Applications",
+      overviewTitle: "Overview",
+      overviewSubtitle: "Platform-wide statistics and quick links",
+      failedLoadStats: "Failed to load stats:",
+      tileUsers: "Users",
+      tileStudents: "Students",
+      tileCorporates: "Corporates",
+      tileInstitutes: "Institutes",
+      tileInternships: "Internships",
+      tileApplications: "Applications",
+      tileStrategicPartners: "Strategic partners",
+      tileActiveUsers: "Active users",
+      quickGuidance: "Quick guidance",
+      guidanceLine1: "Use the sidebar to manage users, students, corporates, institutes, internships and applications.",
+      guidanceLine2: "Deletes cascade safely (e.g. removing a corporate also removes its internships and applications).",
+      guidanceLine3: "Deleting an institute detaches students rather than removing them.",
+    },
   },
   ar: {
     brand: "سمارت إنترن الأردن",
@@ -389,6 +448,35 @@ export const dictionaries: Record<Locale, Dictionary> = {
       close: "إغلاق",
       learn_more: "اقرأ المزيد",
       language: "اللغة",
+    },
+    admin: {
+      verifyingSession: "جاري التحقق من جلسة المسؤول...",
+      adminConsole: "لوحة تحكم المسؤول",
+      backToSite: "العودة للموقع",
+      signOut: "تسجيل الخروج",
+      navOverview: "نظرة عامة",
+      navUsers: "المستخدمين",
+      navStudents: "الطلاب",
+      navCorporates: "الشركات",
+      navPending: "الموافقات المعلقة",
+      navInstitutes: "المؤسسات/الجامعات",
+      navInternships: "الفرص التدريبية",
+      navApplications: "الطلبات",
+      overviewTitle: "نظرة عامة",
+      overviewSubtitle: "إحصائيات المنصة بالكامل والروابط السريعة",
+      failedLoadStats: "فشل تحميل الإحصائيات:",
+      tileUsers: "المستخدمين",
+      tileStudents: "الطلاب",
+      tileCorporates: "الشركات",
+      tileInstitutes: "المؤسسات الأكاديمية",
+      tileInternships: "الفرص التدريبية",
+      tileApplications: "الطلبات المقدمة",
+      tileStrategicPartners: "الشركاء الاستراتيجيين",
+      tileActiveUsers: "المستخدمين النشطين",
+      quickGuidance: "إرشادات سريعة",
+      guidanceLine1: "استخدم الشريط الجانبي لإدارة المستخدمين، الطلاب، الشركات، المؤسسات الأكاديمية، الفرص التدريبية والطلبات.",
+      guidanceLine2: "تتم عمليات الحذف المتتالي بأمان (على سبيل المثال: إزالة شركة يزيل تدريباتها وطلباتها أيضاً).",
+      guidanceLine3: "حذف المؤسسة الأكاديمية يفصل الطلاب عنها بدلاً من حذفهم.",
     },
   },
 };
