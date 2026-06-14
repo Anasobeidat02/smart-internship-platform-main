@@ -86,7 +86,7 @@ async def list_companies(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
 ):
-    stmt = select(Company)
+    stmt = select(Company).where(Company.is_approved == True)  # noqa: E712
     if governorate:
         stmt = stmt.where(Company.governorate.ilike(f"%{governorate}%"))
     if field:
@@ -111,6 +111,6 @@ async def list_companies(
 @router.get("/{slug}", response_model=CompanyOut)
 async def get_company(slug: str, session: Annotated[AsyncSession, Depends(db)]):
     row = (await session.exec(select(Company).where(Company.slug == slug))).first()
-    if not row:
+    if not row or not row.is_approved:
         raise NotFoundError("Company not found")
     return CompanyOut.model_validate(row, from_attributes=True)

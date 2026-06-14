@@ -16,6 +16,7 @@ import {
   Briefcase,
   ScrollText,
   Users,
+  ClipboardCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -26,6 +27,7 @@ const NAV = [
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/students", label: "Students", icon: GraduationCap },
   { href: "/admin/companies", label: "Corporates", icon: Building2 },
+  { href: "/admin/pending", label: "Pending Approvals", icon: ClipboardCheck },
   { href: "/admin/universities", label: "Institutes", icon: School2 },
   { href: "/admin/internships", label: "Internships", icon: Briefcase },
   { href: "/admin/applications", label: "Applications", icon: ScrollText },

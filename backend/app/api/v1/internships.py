@@ -23,7 +23,7 @@ async def list_internships(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
 ):
-    stmt = select(Internship, Company).join(Company, Internship.company_id == Company.id)
+    stmt = select(Internship, Company).join(Company, Internship.company_id == Company.id).where(Company.is_approved == True)  # noqa: E712
     if company_id:
         stmt = stmt.where(Internship.company_id == company_id)
     if open_only:
@@ -76,6 +76,8 @@ async def create_internship(
     ).first()
     if not company:
         raise ForbiddenError("No company linked to this account")
+    if not company.is_approved:
+        raise ForbiddenError("Your company is pending admin approval. You cannot add internships yet.")
     internship = Internship(company_id=company.id, **payload.model_dump())
     session.add(internship)
     await session.commit()

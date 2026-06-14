@@ -48,6 +48,7 @@ export interface Company {
   email?: string | null;
   training_fields: string | string[];
   is_strategic_partner: boolean;
+  is_approved: boolean;
   logo_url?: string | null;
   address?: string | null;
 }
@@ -182,6 +183,7 @@ export interface AdminCompanyRow {
   owner_user_id?: number | null;
   open_internships: number;
   applications_count: number;
+  email?: string | null;
 }
 
 export interface AdminUniversityRow {
@@ -238,4 +240,18 @@ export interface AdminStats {
   applications: number;
   strategic_partners: number;
   active_users: number;
+  pending_companies: number;
 }
+
+export interface AdminPendingCompanyRow {
+  id: number;
+  name_en: string;
+  name_ar: string;
+  email: string | null;
+  city: string;
+  governorate: string;
+  industry: string | null;
+  size: string | null;
+  created_at: string | null;
+}
+

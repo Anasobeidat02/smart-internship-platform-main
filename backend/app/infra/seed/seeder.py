@@ -57,9 +57,10 @@ async def _seed_companies(session) -> int:
             for field in _COMPANY_REFRESH_FIELDS:
                 if field in row:
                     setattr(existing, field, row[field])
+            existing.is_approved = True
             session.add(existing)
             continue
-        session.add(Company(**row))
+        session.add(Company(**row, is_approved=True))
         inserted += 1
     await session.commit()
     return inserted
@@ -96,6 +97,7 @@ async def _seed_demo_accounts(session) -> int:
             ).first()
             if company:
                 company.owner_user_id = user.id
+                company.is_approved = True
                 session.add(company)
                 await session.commit()
         elif role == "student":

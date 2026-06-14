@@ -52,6 +52,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const items = [
     { href: "/dashboard", label: t.dashboard.recommendations, icon: Compass, exact: true, show: user.role === "student" },
     { href: "/dashboard/company", label: locale === "ar" ? "طلبات التدريب" : "Received Applications", icon: Briefcase, show: isCompany },
+    { href: "/dashboard/company/internships", label: locale === "ar" ? "فرص التدريب الخاصة بي" : "My Internships", icon: Briefcase, show: isCompany },
     { href: "/dashboard/profile", label: isCompany ? (locale === "ar" ? "ملف الشركة" : "Company profile") : t.dashboard.profile, icon: isCompany ? Building2 : UserCircle2, show: user.role === "student" || isCompany },
     { href: "/applications", label: t.nav.applications, icon: Briefcase, show: user.role === "student" },
     { href: "/saved", label: t.nav.saved, icon: Heart, show: true },

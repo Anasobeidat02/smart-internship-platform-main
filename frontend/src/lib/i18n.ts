@@ -29,6 +29,10 @@ interface AuthDict {
   signin_title: string; signin_subtitle: string; signup_title: string; signup_subtitle: string;
   email: string; password: string; full_name: string; role: string; role_student: string; role_company: string;
   submit_signin: string; submit_signup: string; have_account: string; no_account: string; sign_in_link: string; sign_up_link: string;
+  email_password_required: string;
+  password_validation_error: string;
+  login_success: string;
+  register_success: string;
 }
 interface DashboardDict {
   welcome: string; complete_profile: string; your_matches: string; best_match: string; view_all: string;
@@ -146,9 +150,13 @@ export const dictionaries: Record<Locale, Dictionary> = {
       submit_signin: "Sign in",
       submit_signup: "Create account",
       have_account: "Already have an account?",
-      no_account: "Don't have an account?",
+      no_account: "New student or company?",
       sign_in_link: "Sign in",
-      sign_up_link: "Create one",
+      sign_up_link: "Create an account",
+      email_password_required: "Please enter your email and password.",
+      password_validation_error: "Password must be at least 8 characters and contain at least one uppercase letter, one lowercase letter, and one symbol.",
+      login_success: "Welcome back!",
+      register_success: "Welcome aboard!",
     },
     dashboard: {
       welcome: "Welcome back",
@@ -306,9 +314,13 @@ export const dictionaries: Record<Locale, Dictionary> = {
       submit_signin: "تسجيل الدخول",
       submit_signup: "إنشاء حساب",
       have_account: "لديك حساب؟",
-      no_account: "ليس لديك حساب؟",
+      no_account: "طالب أو شركة جديدة؟",
       sign_in_link: "سجّل دخولك",
       sign_up_link: "أنشئ حساباً",
+      email_password_required: "الرجاء إدخال البريد الإلكتروني وكلمة المرور.",
+      password_validation_error: "يجب أن تتكون كلمة المرور من 8 خانات على الأقل، وتحتوي على حرف كبير، وحرف صغير، ورمز واحد على الأقل.",
+      login_success: "مرحباً بعودتك!",
+      register_success: "أهلاً بك معنا!",
     },
     dashboard: {
       welcome: "مرحباً بك",

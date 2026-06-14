@@ -11,7 +11,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Eye, EyeOff } from "lucide-react";
 
 export default function RegisterPage() {
   const { t } = useI18n();
@@ -19,11 +19,21 @@ export default function RegisterPage() {
   const setUser = useAuth((s) => s.setUser);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [full_name, setFullName] = useState("");
   const [role, setRole] = useState<"student" | "company">("student");
 
   const mutation = useMutation({
     mutationFn: async () => {
+      const hasMinLength = password.length >= 8;
+      const hasUppercase = /[A-Z]/.test(password);
+      const hasLowercase = /[a-z]/.test(password);
+      const hasSymbol = /[^A-Za-z0-9]/.test(password);
+
+      if (!hasMinLength || !hasUppercase || !hasLowercase || !hasSymbol) {
+        throw new Error(t.auth.password_validation_error);
+      }
+
       const tokens = await api<TokenPair>("/auth/register", {
         method: "POST",
         body: { email, password, full_name, role },
@@ -35,7 +45,7 @@ export default function RegisterPage() {
       return me;
     },
     onSuccess: () => {
-      toast.success("Welcome aboard!");
+      toast.success(t.auth.register_success);
       router.push("/dashboard");
     },
     onError: (e: Error) => toast.error(e.message),
@@ -72,7 +82,23 @@ export default function RegisterPage() {
           </div>
           <div>
             <Label>{t.auth.password}</Label>
-            <Input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
+            <div className="relative">
+              <Input
+                type={showPassword ? "text" : "password"}
+                required
+                minLength={8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="pe-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-[rgb(var(--muted))] hover:text-[rgb(var(--foreground))] focus:outline-none"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
           <div>
             <Label>{t.auth.role}</Label>

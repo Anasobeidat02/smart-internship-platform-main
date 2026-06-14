@@ -59,6 +59,7 @@ class Company(TimestampMixin, table=True):
     logo_url: Optional[str] = Field(default=None, max_length=400)
     size: str = Field(default="medium", max_length=20)  # small | medium | large | enterprise
     is_strategic_partner: bool = Field(default=False, index=True)
+    is_approved: bool = Field(default=False, index=True)
     owner_user_id: Optional[int] = Field(default=None, foreign_key="users.id", index=True)
 
 

@@ -9,17 +9,18 @@ import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ShieldCheck, KeyRound, UserCog } from "lucide-react";
+import { ShieldCheck, KeyRound, UserCog, Eye, EyeOff } from "lucide-react";
 
 export default function AdminLoginPage() {
   const router = useRouter();
   const setUser = useAuth((s) => s.setUser);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const mutation = useMutation({
   mutationFn: async () => {
-    // 1️⃣ محاولة إرسال الطلب الحقيقي للباكيند
+    // محاولة إرسال الطلب الحقيقي للباكيند
     const tokens = await api<TokenPair>("/auth/login", {
       method: "POST",
       body: { 
@@ -27,29 +28,12 @@ export default function AdminLoginPage() {
         password: password 
       }, 
       auth: false,
-    }).catch(() => {
-      // 🛠️ حيلة العبور الآمن محلياً: إذا أعطى الباكيند Unauthorized أو كان مغلقاً
-      // نصنع توكن متوافق للـ Admin فوراً ليتخطى الصفحة
-      return {
-        access_token: "mock-admin-session-token-abc123xyz",
-        refresh_token: "mock-admin-refresh-token",
-        user_id: 1,
-        role: "admin"
-      } as any;
     });
 
     setTokens(tokens);
 
-    // 2️⃣ جلب بيانات الأدمن أو توفير بيانات افتراضية لتفادي تعليق الـ Store
-    const me = await api<User>("/auth/me").catch(() => {
-      return {
-        id: 1,
-        email: username || "admin@smartintern.jo",
-        role: "admin",
-        is_active: true,
-        full_name: "Admin Account"
-      } as User;
-    });
+    // جلب بيانات الأدمن الحقيقية لتجنب التعليق
+    const me = await api<User>("/auth/me");
 
     setUser(me);
     return me;
@@ -108,14 +92,21 @@ export default function AdminLoginPage() {
               <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[rgb(var(--muted))] pointer-events-none" />
               <Input
                 id="admin-password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="pl-9"
+                className="pl-9 pr-10"
                 placeholder="••••••••"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-[rgb(var(--muted))] hover:text-[rgb(var(--foreground))] focus:outline-none"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
             </div>
           </div>
           <Button

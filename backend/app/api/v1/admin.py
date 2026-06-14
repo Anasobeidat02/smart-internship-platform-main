@@ -66,6 +66,7 @@ class CompanyRow(BaseModel):
     owner_user_id: Optional[int] = None
     open_internships: int = 0
     applications_count: int = 0
+    email: Optional[str] = None
 
 
 class UniversityRow(BaseModel):
@@ -122,6 +123,7 @@ class AdminStats(BaseModel):
     applications: int
     strategic_partners: int
     active_users: int
+    pending_companies: int = 0
 
 
 class StatusUpdate(BaseModel):
@@ -130,6 +132,18 @@ class StatusUpdate(BaseModel):
 
 class ActiveUpdate(BaseModel):
     is_active: bool
+
+
+class PendingCompanyRow(BaseModel):
+    id: int
+    name_en: str
+    name_ar: str
+    email: Optional[str] = None
+    city: str
+    governorate: str
+    industry: str = ""
+    size: str = "medium"
+    created_at: Optional[datetime] = None
 
 
 AdminGuard = Annotated[str, Depends(require_role("admin"))]
@@ -157,6 +171,7 @@ async def get_stats(
         applications=await _count(Application),
         strategic_partners=await _count(Company, Company.is_strategic_partner == True),  # noqa: E712
         active_users=await _count(User, User.is_active == True),  # noqa: E712
+        pending_companies=await _count(Company, Company.is_approved == False),  # noqa: E712
     )
 
 
@@ -326,6 +341,12 @@ async def list_companies(
     ).all()
     app_counts = {cid: int(c) for cid, c in app_rows}
 
+    owner_ids = [c.owner_user_id for c in companies if c.owner_user_id is not None]
+    email_by_uid = {}
+    if owner_ids:
+        users = (await session.exec(select(User).where(User.id.in_(owner_ids)))).all()
+        email_by_uid = {u.id: u.email for u in users}
+
     return [
         CompanyRow(
             id=c.id,
@@ -342,6 +363,7 @@ async def list_companies(
             owner_user_id=c.owner_user_id,
             open_internships=open_counts.get(c.id, 0),
             applications_count=app_counts.get(c.id, 0),
+            email=email_by_uid.get(c.owner_user_id) if c.owner_user_id else None,
         )
         for c in companies
     ]
@@ -394,6 +416,8 @@ class CreateCompanyIn(BaseModel):
     website: Optional[str] = None
     latitude: float = 31.9515694
     longitude: float = 35.9239625
+    email: Optional[str] = None
+    password: Optional[str] = None
 
 
 @router.post("/companies", response_model=CompanyRow, status_code=201)
@@ -403,6 +427,11 @@ async def create_company(
     _: AdminGuard,
 ):
     from app.core.exceptions import ConflictError
+    from fastapi import HTTPException
+    
+    if not payload.email or not payload.password:
+        raise HTTPException(status_code=400, detail="Email and password are required for new companies")
+        
     slug = _slugify(payload.name_en)
     # make slug unique
     existing_slugs = {c.slug for c in (await session.exec(select(Company).where(Company.slug.startswith(slug)))).all()}
@@ -411,6 +440,24 @@ async def create_company(
     while final_slug in existing_slugs:
         final_slug = f"{slug}-{counter}"
         counter += 1
+
+    from app.core.security import hash_password
+    email_lower = payload.email.strip().lower()
+    existing_user = (await session.exec(select(User).where(User.email == email_lower))).first()
+    if existing_user:
+        raise ConflictError("Email already registered")
+    
+    user = User(
+        email=email_lower,
+        password_hash=hash_password(payload.password),
+        role="company",
+        is_active=True,
+    )
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
+    owner_user_id = user.id
+
     company = Company(
         slug=final_slug,
         name_en=payload.name_en,
@@ -422,6 +469,8 @@ async def create_company(
         website=payload.website,
         latitude=payload.latitude,
         longitude=payload.longitude,
+        owner_user_id=owner_user_id,
+        is_approved=True,
     )
     session.add(company)
     await session.commit()
@@ -432,6 +481,7 @@ async def create_company(
         size=company.size, is_strategic_partner=company.is_strategic_partner,
         website=company.website, logo_url=company.logo_url, owner_user_id=company.owner_user_id,
         open_internships=0, applications_count=0,
+        email=user.email,
     )
 
 
@@ -810,6 +860,51 @@ async def update_company(
     if payload.longitude != 35.9239625 or c.longitude is None:
         c.longitude = payload.longitude
         
+    owner_email = None
+    if c.owner_user_id:
+        owner_user = await session.get(User, c.owner_user_id)
+        if owner_user:
+            if not payload.email or not payload.email.strip():
+                from fastapi import HTTPException
+                raise HTTPException(status_code=400, detail="Email is required for company accounts")
+            
+            email_lower = payload.email.strip().lower()
+            if owner_user.email != email_lower:
+                from app.core.exceptions import ConflictError
+                existing_user = (await session.exec(select(User).where(User.email == email_lower))).first()
+                if existing_user:
+                    raise ConflictError("Email already registered")
+                owner_user.email = email_lower
+                
+            if payload.password and payload.password.strip():
+                from app.core.security import hash_password
+                owner_user.password_hash = hash_password(payload.password)
+                
+            session.add(owner_user)
+            await session.commit()
+            await session.refresh(owner_user)
+            owner_email = owner_user.email
+    else:
+        if payload.email and payload.email.strip() and payload.password and payload.password.strip():
+            from app.core.exceptions import ConflictError
+            from app.core.security import hash_password
+            email_lower = payload.email.strip().lower()
+            existing_user = (await session.exec(select(User).where(User.email == email_lower))).first()
+            if existing_user:
+                raise ConflictError("Email already registered")
+            
+            user = User(
+                email=email_lower,
+                password_hash=hash_password(payload.password),
+                role="company",
+                is_active=True,
+            )
+            session.add(user)
+            await session.commit()
+            await session.refresh(user)
+            c.owner_user_id = user.id
+            owner_email = user.email
+
     session.add(c)
     await session.commit()
     await session.refresh(c)
@@ -849,6 +944,7 @@ async def update_company(
         owner_user_id=c.owner_user_id,
         open_internships=open_internships,
         applications_count=applications_count,
+        email=owner_email,
     )
 
 
@@ -970,6 +1066,81 @@ async def update_internship(
         applications_count=app_count,
         created_at=it.created_at,
     )
+
+
+# -------------------------- Pending Companies --------------------------
+
+@router.get("/pending-companies", response_model=list[PendingCompanyRow])
+async def list_pending_companies(
+    session: Annotated[AsyncSession, Depends(db)],
+    _: AdminGuard,
+):
+    companies = (
+        await session.exec(
+            select(Company)
+            .where(Company.is_approved == False)  # noqa: E712
+            .order_by(Company.created_at.desc())
+        )
+    ).all()
+    owner_ids = [c.owner_user_id for c in companies if c.owner_user_id is not None]
+    email_by_uid = {}
+    if owner_ids:
+        users = (await session.exec(select(User).where(User.id.in_(owner_ids)))).all()
+        email_by_uid = {u.id: u.email for u in users}
+
+    return [
+        PendingCompanyRow(
+            id=c.id,
+            name_en=c.name_en,
+            name_ar=c.name_ar,
+            email=email_by_uid.get(c.owner_user_id) if c.owner_user_id else None,
+            city=c.city,
+            governorate=c.governorate,
+            industry=c.fields,
+            size=c.size,
+            created_at=c.created_at,
+        )
+        for c in companies
+    ]
+
+
+@router.post("/pending-companies/{company_id}/approve", response_model=dict)
+async def approve_company(
+    company_id: int,
+    session: Annotated[AsyncSession, Depends(db)],
+    _: AdminGuard,
+):
+    c = await session.get(Company, company_id)
+    if not c:
+        raise NotFoundError("Company not found")
+    c.is_approved = True
+    session.add(c)
+    await session.commit()
+    return {"id": c.id, "is_approved": True}
+
+
+@router.post("/pending-companies/{company_id}/reject", response_model=dict)
+async def reject_company(
+    company_id: int,
+    session: Annotated[AsyncSession, Depends(db)],
+    _: AdminGuard,
+):
+    c = await session.get(Company, company_id)
+    if not c:
+        raise NotFoundError("Company not found")
+    # Delete related internships and applications
+    await session.exec(sqldelete(Application).where(Application.company_id == company_id))
+    await session.exec(sqldelete(Internship).where(Internship.company_id == company_id))
+    owner_user_id = c.owner_user_id
+    await session.delete(c)
+    # Delete the linked user account
+    if owner_user_id:
+        user = await session.get(User, owner_user_id)
+        if user:
+            await session.exec(sqldelete(RefreshToken).where(RefreshToken.user_id == owner_user_id))
+            await session.delete(user)
+    await session.commit()
+    return {"deleted": True}
 
 
 # -------------------------- Seed --------------------------

@@ -11,7 +11,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Sparkles, Building2 } from "lucide-react";
+import { Sparkles, Building2, Eye, EyeOff } from "lucide-react";
 
 /** Map each role to its post-login destination. */
 function dashboardFor(role: User["role"]): string {
@@ -31,57 +31,33 @@ export default function LoginPage() {
   const setUser = useAuth((s) => s.setUser);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const isDev = process.env.NODE_ENV !== "production";
 
- // 🛠️ التعديل اليدوي الصحيح لدالة الـ mutation
-   const mutation = useMutation({
+  // التعديل لدالة الـ mutation لتكون آمنة وتتحقق بدقة من قاعدة البيانات
+  const mutation = useMutation({
     mutationFn: async () => {
       if (!email || !password) {
-        throw new Error("الرجاء إدخال البريد الإلكتروني وكلمة المرور");
+        throw new Error(t.auth.email_password_required);
       }
 
-      if (password.length < 4) {
-        throw new Error("كلمة المرور قصيرة جداً");
-      }
-
-      // 1️⃣ إرسال طلب حقيقي للباكيند للتحقق من وجود الحساب وصحة البيانات
-      // الباكيند سيبحث في قاعدة البيانات ويرجع بيانات المستخدم الحقيقية ونوعه (role)
-      const isDemoCompany = email.toLowerCase().includes("demo.company");
-      const endpoint = isDemoCompany ? "/auth/company-login" : "/auth/login";
-
-      const tokens = await api<TokenPair>(endpoint, {
+      // إرسال طلب حقيقي للباكيند للتحقق من وجود الحساب وصحة البيانات
+      const tokens = await api<TokenPair>("/auth/login", {
         method: "POST",
         body: { email, password },
         auth: false,
-      }).catch(() => {
-        // إذا حدث حظر محلي أو تعليق، نصنع توكن متوافق لضمان عبور المناقشة بأمان
-        return {
-          access_token: "real-live-session-token-abc123xyz",
-          refresh_token: "real-live-refresh-token",
-          user_id: 99,
-          role: isDemoCompany ? "company" : "student"
-        } as any;
       });
       
       setTokens(tokens);
 
-      // 2️⃣ هنا السحر الحقيقي: نحدد الـ role بناءً على ما رجع من الباكيند أو الديمو مباشرة
-      const userRole = tokens.role || (isDemoCompany ? "company" : "student");
-
-      const userPayload: User = {
-        id: tokens.user_id || 99,
-        email: email,
-        role: userRole as User["role"], // القيمة الحقيقية القادمة من السيستم (student أو company)
-        is_active: true,
-        full_name: userRole === "company" ? "Company Account" : "Student Account",
-      };
+      // جلب بيانات المستخدم الحقيقية من الباكيند
+      const userPayload = await api<User>("/auth/me");
 
       setUser(userPayload);
       return userPayload;
     },
     onSuccess: (u) => {
-      toast.success(`Welcome, ${u.email}`);
-      
+      toast.success(t.auth.login_success);
       
       if (u.role === "company") {
         router.push("/dashboard/company"); // 👈 يفتح لوحة الشركة الحقيقية (الطلبات والوظائف)
@@ -122,7 +98,23 @@ export default function LoginPage() {
           </div>
           <div>
             <Label htmlFor="password">{t.auth.password}</Label>
-            <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="pe-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-[rgb(var(--muted))] hover:text-[rgb(var(--foreground))] focus:outline-none"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
           <Button type="submit" size="lg" className="w-full" disabled={mutation.isPending}>
             {mutation.isPending ? t.common.loading : t.auth.submit_signin}
@@ -137,7 +129,7 @@ export default function LoginPage() {
         </div>
 
         {/* Secondary sign-in links */}
-        <div className="mt-3 flex items-center justify-center gap-4 text-xs text-[rgb(var(--muted))]">
+       {/* <div className="mt-3 flex items-center justify-center gap-4 text-xs text-[rgb(var(--muted))]">
           <span className="flex items-center gap-1">
             <Building2 className="h-3.5 w-3.5" />
             Company?{" "}
@@ -153,6 +145,7 @@ export default function LoginPage() {
             Admin sign-in
           </Link>
         </div>
+        */}
 
         {isDev && (
           <div className="mt-6 pt-5 border-t border-[rgb(var(--border))] text-xs text-[rgb(var(--muted))]">

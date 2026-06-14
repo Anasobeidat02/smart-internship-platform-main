@@ -28,6 +28,7 @@ function CompanyModal({
   const [form, setForm] = useState({
     name_en: "", name_ar: "", city: "Amman", governorate: "Amman",
     industry: "", size: "medium", website: "",
+    email: "", password: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -42,11 +43,14 @@ function CompanyModal({
           industry: company.industry || "",
           size: company.size || "medium",
           website: company.website || "",
+          email: company.email || "",
+          password: "",
         });
       } else {
         setForm({
           name_en: "", name_ar: "", city: "Amman", governorate: "Amman",
           industry: "", size: "medium", website: "",
+          email: "", password: "",
         });
       }
       setErrors({});
@@ -80,6 +84,52 @@ function CompanyModal({
     const errs: Record<string, string> = {};
     if (!form.name_en.trim()) errs.name_en = "English name is required";
     if (!form.name_ar.trim()) errs.name_ar = "Arabic name is required";
+    
+    const hasExistingAccount = company && !!company.email;
+    
+    if (!company) {
+      // Creation: Strictly required
+      if (!form.email.trim()) {
+        errs.email = "Email is required";
+      } else if (!/\S+@\S+\.\S+/.test(form.email)) {
+        errs.email = "Invalid email address";
+      }
+      if (!form.password.trim()) {
+        errs.password = "Password is required";
+      } else if (form.password.length < 6) {
+        errs.password = "Password must be at least 6 characters";
+      }
+    } else {
+      // Edit
+      if (hasExistingAccount) {
+        // Email is mandatory, password is optional
+        if (!form.email.trim()) {
+          errs.email = "Email is required";
+        } else if (!/\S+@\S+\.\S+/.test(form.email)) {
+          errs.email = "Invalid email address";
+        }
+        if (form.password.trim() && form.password.length < 6) {
+          errs.password = "Password must be at least 6 characters";
+        }
+      } else {
+        // No account yet: optional, but if either is filled, both are required
+        const emailFilled = !!form.email.trim();
+        const passwordFilled = !!form.password.trim();
+        if (emailFilled || passwordFilled) {
+          if (!form.email.trim()) {
+            errs.email = "Email is required to create account";
+          } else if (!/\S+@\S+\.\S+/.test(form.email)) {
+            errs.email = "Invalid email address";
+          }
+          if (!form.password.trim()) {
+            errs.password = "Password is required to create account";
+          } else if (form.password.length < 6) {
+            errs.password = "Password must be at least 6 characters";
+          }
+        }
+      }
+    }
+    
     setErrors(errs);
     return Object.keys(errs).length === 0;
   }
@@ -87,10 +137,21 @@ function CompanyModal({
   function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!validate()) return;
-    mut.mutate({ ...form, website: form.website || undefined });
+    
+    const { email, password, ...rest } = form;
+    const payload = {
+      ...rest,
+      website: form.website || undefined,
+      email: email.trim() || undefined,
+      password: password.trim() || undefined,
+    };
+    
+    mut.mutate(payload);
   }
 
   const set = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }));
+
+  const hasAccount = !company || !!company.email;
 
   if (!open) return null;
   return (
@@ -150,6 +211,24 @@ function CompanyModal({
             <label className="text-sm font-semibold">Website</label>
             <input type="url" className={inputCls} value={form.website} onChange={(e) => set("website", e.target.value)} placeholder="https://example.com" />
           </div>
+          
+          <div className="grid grid-cols-2 gap-4 border-t border-[rgb(var(--border))] pt-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold">
+                Email (Login) {hasAccount && <span className="text-rose-500">*</span>}
+              </label>
+              <input type="email" className={inputCls} value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="contact@company.com" />
+              {errors.email && <p className="text-xs text-rose-500">{errors.email}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold">
+                Password {!company && <span className="text-rose-500">*</span>}
+              </label>
+              <input type="password" className={inputCls} value={form.password} onChange={(e) => set("password", e.target.value)} placeholder={company ? "•••••••• (leave blank to keep unchanged)" : "••••••••"} />
+              {errors.password && <p className="text-xs text-rose-500">{errors.password}</p>}
+            </div>
+          </div>
+          
           <div className="flex justify-end gap-2 pt-2 border-t border-[rgb(var(--border))]">
             <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={mut.isPending}>Cancel</Button>
             <Button type="submit" size="sm" disabled={mut.isPending}>

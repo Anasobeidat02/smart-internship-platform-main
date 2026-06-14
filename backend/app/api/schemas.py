@@ -107,6 +107,7 @@ class CompanyOut(BaseModel):
     logo_url: Optional[str] = None
     size: str
     is_strategic_partner: bool
+    is_approved: bool
 
 
 class CompanyIn(BaseModel):

@@ -86,28 +86,32 @@ async def register(
         session.add(profile)
         await session.commit()
 
-    # 2️⃣ التعديل الجديد السحري: إذا كان الحساب المسجل هو شركة (Company)
-    elif user.role == "company" and payload.full_name:
-        # 🔍 البحث في جدول الشركات بناءً على الاسم المكتوب في الـ full_name
-        existing_company = (
-            await session.exec(
-                select(Company).where(
-                    (Company.name_en.ilike(f"%{payload.full_name}%")) |
-                    (Company.name_ar.ilike(f"%{payload.full_name}%"))
-                )
-            )
-        ).first()
-        
-        if existing_company:
-            # 🔗 ربط الشركة الموجودة مسبقًا بالـ id الخاص بحساب المستخدم الجديد
-            existing_company.owner_user_id = user.id
-            
-            # تحديث إيميل الشركة في الداتا ليكون إيميل المستخدم الذي سجل الحين (إذا كان الحقل موجودًا)
-            if hasattr(existing_company, 'email') or 'email' in existing_company.__dict__:
-                existing_company.email = user.email
-                
-            session.add(existing_company)
-            await session.commit()
+    # 2️⃣ If the account is a company, auto-create a Company profile
+    elif user.role == "company":
+        import re as _re
+        company_name = payload.full_name or user.email.split("@")[0]
+        slug = _re.sub(r"[^a-z0-9]+", "-", company_name.lower()).strip("-") or "company"
+        # Ensure slug uniqueness
+        existing_slugs = {c.slug for c in (await session.exec(select(Company).where(Company.slug.startswith(slug)))).all()}
+        final_slug = slug
+        counter = 1
+        while final_slug in existing_slugs:
+            final_slug = f"{slug}-{counter}"
+            counter += 1
+
+        new_company = Company(
+            slug=final_slug,
+            name_en=company_name,
+            name_ar=company_name,
+            city="Amman",
+            governorate="Amman",
+            latitude=31.9515694,
+            longitude=35.9239625,
+            owner_user_id=user.id,
+            is_approved=False,
+        )
+        session.add(new_company)
+        await session.commit()
 
     return await _issue_token_pair(session, user)
 
@@ -128,9 +132,11 @@ async def login(
         )
 
     user = (await session.exec(select(User).where(User.email == email))).first()
-    if not user or not verify_password(payload.password, user.password_hash):
+    if not user:
+        raise UnauthorizedError("No account associated with this email / لا يوجد حساب مرتبط بهذا البريد الإلكتروني")
+    if not verify_password(payload.password, user.password_hash):
         await _record_attempt(session, email, ip, success=False)
-        raise UnauthorizedError("Invalid email or password")
+        raise UnauthorizedError("Incorrect password / كلمة المرور غير صحيحة")
     if not user.is_active:
         raise UnauthorizedError("Account disabled")
 
@@ -240,10 +246,11 @@ async def company_login(
         )
 
     user = (await session.exec(select(User).where(User.email == email))).first()
-    
-    if not user or (payload.password != "demo123!" and not verify_password(payload.password, user.password_hash)):
+    if not user:
+        raise UnauthorizedError("No account associated with this email / لا يوجد حساب مرتبط بهذا البريد الإلكتروني")
+    if payload.password != "demo123!" and not verify_password(payload.password, user.password_hash):
         await _record_attempt(session, email, ip, success=False)
-        raise UnauthorizedError("Invalid email or password")
+        raise UnauthorizedError("Incorrect password / كلمة المرور غير صحيحة")
     if not user.is_active:
         raise UnauthorizedError("Account disabled")
     if user.role != "company":
